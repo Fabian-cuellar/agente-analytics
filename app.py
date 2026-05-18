@@ -86,9 +86,43 @@ Reglas SQL BigQuery:
 - Usa LEFT JOIN para mantener todos los registros de la tabla principal aunque no haya coincidencia en la secundaria"""
 
 # --- UI Streamlit ---
-st.set_page_config(page_title="Agente Analytics", page_icon="📊", layout="wide")
-st.title("📊 Agente de Analytics")
-st.caption("Pregúntame cualquier cosa sobre las ventas en lenguaje natural")
+st.set_page_config(page_title="QueryAI", page_icon="⚡", layout="wide")
+
+st.title("⚡ QueryAI")
+st.markdown("Escribe una pregunta en español, la IA genera el SQL, consulta la base de datos en tiempo real y te responde en lenguaje natural.")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    with st.expander("💡 ¿Qué puedo preguntar?"):
+        st.markdown("""
+**Ventas**
+- ¿Cuál fue el mes con más ingresos?
+- ¿Cuánto vendimos el último trimestre?
+
+**Productos**
+- ¿Qué categoría tiene mayor margen?
+- ¿Cuáles son los 5 productos más vendidos?
+
+**Clientes**
+- ¿De qué país tenemos más usuarios?
+- ¿Cuál es la edad promedio de nuestros compradores?
+""")
+
+with col2:
+    with st.expander("⚙️ Cómo funciona"):
+        st.markdown("""
+**1. Escribes tu pregunta**
+En lenguaje natural, sin saber SQL.
+
+**2. Claude genera SQL automáticamente**
+Analiza las tablas disponibles y construye la consulta correcta.
+
+**3. Obtienes respuesta con datos reales**
+Los resultados vienen directamente de BigQuery en tiempo real.
+""")
+
+st.divider()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -187,3 +221,6 @@ if pregunta := st.chat_input("¿Cuáles son los productos más vendidos?"):
                     st.session_state.messages.append({"role": "assistant", "content": respuesta})
                     logging.info(f"Respuesta: {respuesta[:200]}")
                     break
+
+st.divider()
+st.caption("Conectado a BigQuery  •  Dataset: thelook_ecommerce  •  Consultas en tiempo real")
