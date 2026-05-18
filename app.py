@@ -1,27 +1,26 @@
 import streamlit as st
 import anthropic
-import os
 import io
+import json
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from dotenv import load_dotenv
 import logging
 
-load_dotenv()
-
-logging.basicConfig(filename="agente_log.txt", level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 # --- Configuración BigQuery ---
-credentials = service_account.Credentials.from_service_account_file(
-    "credentials.json",
+gcp_secret = st.secrets["gcp_service_account"]
+credentials_info = json.loads(gcp_secret) if isinstance(gcp_secret, str) else dict(gcp_secret)
+credentials = service_account.Credentials.from_service_account_info(
+    credentials_info,
     scopes=["https://www.googleapis.com/auth/bigquery"]
 )
-bq = bigquery.Client(credentials=credentials, project=credentials.project_id)
+bq = bigquery.Client(credentials=credentials, project=credentials_info["project_id"])
 
 PROJECT = "bigquery-public-data"
 DATASET = "thelook_ecommerce"
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 tools = [
     {
