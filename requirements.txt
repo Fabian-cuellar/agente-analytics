@@ -1,6 +1,7 @@
 streamlit
 anthropic
 google-cloud-bigquery
+db-dtypes
 google-auth
 python-dotenv
 openpyxl
