@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 # --- Configuración BigQuery ---
 gcp_secret = st.secrets["gcp_service_account"]
 credentials_info = json.loads(gcp_secret) if isinstance(gcp_secret, str) else dict(gcp_secret)
+credentials_info["private_key"] = credentials_info["private_key"].replace("\\n", "\n")
 credentials = service_account.Credentials.from_service_account_info(
     credentials_info,
     scopes=["https://www.googleapis.com/auth/bigquery"]
