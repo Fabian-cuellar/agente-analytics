@@ -1,0 +1,6 @@
+streamlit
+anthropic
+google-cloud-bigquery
+google-auth
+python-dotenv
+openpyxl

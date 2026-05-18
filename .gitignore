@@ -1,0 +1,7 @@
+# Excluir todo
+*
+
+# Excepto estos archivos
+!.gitignore
+!app.py
+!requirements.txt
