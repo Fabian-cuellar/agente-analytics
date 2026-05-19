@@ -91,25 +91,41 @@ st.set_page_config(page_title="QueryAI", page_icon="⚡", layout="wide")
 st.title("⚡ QueryAI")
 st.markdown("Escribe una pregunta en español, la IA genera el SQL, consulta la base de datos en tiempo real y te responde en lenguaje natural.")
 
-col1, col2 = st.columns(2)
+# Contexto del dataset prominente en la parte superior
+st.info(
+    "🔗 **Conectado a BigQuery** · Dataset: `thelook_ecommerce` · "
+    "Dataset de ecommerce con ventas, productos y clientes reales · Consultas en tiempo real"
+)
 
-with col1:
-    with st.expander("💡 ¿Qué puedo preguntar?"):
-        st.markdown("""
-**Ventas**
-- ¿Cuál fue el mes con más ingresos?
-- ¿Cuánto vendimos el último trimestre?
+# --- Session state ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
 
-**Productos**
-- ¿Qué categoría tiene mayor margen?
-- ¿Cuáles son los 5 productos más vendidos?
+# --- Sidebar ---
+with st.sidebar:
+    st.markdown("### 💡 Preguntas de ejemplo")
+    st.markdown("Haz clic para ejecutar directamente:")
 
-**Clientes**
-- ¿De qué país tenemos más usuarios?
-- ¿Cuál es la edad promedio de nuestros compradores?
-""")
+    example_questions = [
+        "¿Cuál fue el mes con más ingresos?",
+        "¿Cuánto vendimos el último trimestre?",
+        "¿Qué categoría tiene mayor margen?",
+        "¿Cuáles son los 5 productos más vendidos?",
+        "¿De qué país tenemos más usuarios?",
+        "¿Cuál es la edad promedio de nuestros compradores?",
+    ]
 
-with col2:
+    for q in example_questions:
+        if st.button(q, use_container_width=True):
+            st.session_state.pending_question = q
+            st.rerun()
+
+    st.divider()
+
     with st.expander("⚙️ Cómo funciona"):
         st.markdown("""
 **1. Escribes tu pregunta**
@@ -122,12 +138,13 @@ Analiza las tablas disponibles y construye la consulta correcta.
 Los resultados vienen directamente de BigQuery en tiempo real.
 """)
 
-st.divider()
+    st.divider()
+    st.markdown(
+        "Creado por **Fabián Cuellar** · AI Automation Specialist  \n"
+        "✉ fabian.cuellar.retamal@gmail.com"
+    )
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+st.divider()
 
 # Botón limpiar chat
 if st.button("🗑️ Limpiar chat"):
@@ -143,15 +160,27 @@ for i, msg in enumerate(st.session_state.chat_history):
             with st.expander("Ver SQL ejecutado"):
                 st.code(msg["sql"], language="sql")
         if "dataframe" in msg:
-            st.dataframe(msg["dataframe"])
+            df_display = msg["dataframe"].copy()
+            df_display.index = range(1, len(df_display) + 1)
+            st.dataframe(df_display)
             buf = io.BytesIO()
             msg["dataframe"].to_excel(buf, index=False)
             st.download_button("⬇️ Descargar Excel", buf.getvalue(), "resultados.xlsx",
                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                key=f"dl_hist_{i}")
 
-# Input del usuario
-if pregunta := st.chat_input("¿Cuáles son los productos más vendidos?"):
+# Input del usuario — acepta tanto texto escrito como pregunta de botón
+typed_input = st.chat_input("¿Cuáles son los productos más vendidos?")
+
+if st.session_state.pending_question:
+    pregunta = st.session_state.pending_question
+    st.session_state.pending_question = None
+elif typed_input:
+    pregunta = typed_input
+else:
+    pregunta = None
+
+if pregunta:
     logging.info(f"Pregunta: {pregunta}")
 
     st.session_state.chat_history.append({"role": "user", "content": pregunta})
@@ -205,7 +234,9 @@ if pregunta := st.chat_input("¿Cuáles son los productos más vendidos?"):
                             st.code(last_sql, language="sql")
 
                     if df_resultado is not None:
-                        st.dataframe(df_resultado)
+                        df_display = df_resultado.copy()
+                        df_display.index = range(1, len(df_display) + 1)
+                        st.dataframe(df_display)
                         buf = io.BytesIO()
                         df_resultado.to_excel(buf, index=False)
                         st.download_button("⬇️ Descargar Excel", buf.getvalue(), "resultados.xlsx",
@@ -221,6 +252,3 @@ if pregunta := st.chat_input("¿Cuáles son los productos más vendidos?"):
                     st.session_state.messages.append({"role": "assistant", "content": respuesta})
                     logging.info(f"Respuesta: {respuesta[:200]}")
                     break
-
-st.divider()
-st.caption("Conectado a BigQuery  •  Dataset: thelook_ecommerce  •  Consultas en tiempo real")
