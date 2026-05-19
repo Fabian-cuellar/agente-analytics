@@ -5,6 +5,7 @@ google-api-python-client
 google-auth
 google-cloud-bigquery
 db-dtypes
+openpyxl
 pdfplumber
 chromadb==0.4.24
 sentence-transformers
