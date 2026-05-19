@@ -609,41 +609,41 @@ if pregunta := st.chat_input(placeholder_input):
             respuesta_container = st.empty()
             respuesta = ""
 
-            import time
-            max_intentos = 3
-            for intento in range(1, max_intentos + 1):
-                try:
-                    with claude_client.messages.stream(
-                        model=cfg["rag"]["modelo"],
-                        max_tokens=4096,
-                        system=cfg["system_prompt"],
-                        messages=st.session_state.messages
-                    ) as stream:
-                        for text in stream.text_stream:
-                            respuesta += text
-                            respuesta_container.markdown(respuesta + "▌")
-                    break  # éxito, salir del loop
-                except anthropic.APIStatusError as e:
-                    if e.status_code == 529 or "overloaded" in str(e.message).lower():
-                        if intento < max_intentos:
-                            wait = 2 ** intento  # 2s, 4s
-                            respuesta_container.markdown(f"⏳ API ocupada, reintentando en {wait}s... (intento {intento}/{max_intentos})")
-                            time.sleep(wait)
-                            respuesta = ""
-                            continue
-                    st.error(f"❌ Error de API Anthropic ({e.status_code}): {e.message}")
-                    logging.error(f"APIStatusError: status={e.status_code} message={e.message}")
-                    st.stop()
-                except anthropic.APIConnectionError as e:
-                    st.error(f"❌ Sin conexión con la API de Anthropic: {e}")
-                    logging.error(f"APIConnectionError: {e}")
-                    st.stop()
-                except Exception as e:
-                    st.error(f"❌ Error inesperado al llamar a Claude: {type(e).__name__}: {e}")
-                    logging.error(f"Unexpected error in streaming: {type(e).__name__}: {e}")
-                    st.stop()
-            else:
-                st.error("❌ La API de Anthropic sigue sobrecargada. Intenta en unos minutos.")
+            try:
+                with claude_client.messages.stream(
+                    model=cfg["rag"]["modelo"],
+                    max_tokens=4096,
+                    system=cfg["system_prompt"],
+                    messages=st.session_state.messages
+                ) as stream:
+                    for text in stream.text_stream:
+                        respuesta += text
+                        respuesta_container.markdown(respuesta + "▌")
+            except anthropic.APIStatusError as e:
+                is_overloaded = "overloaded" in str(e.message).lower()
+                if is_overloaded:
+                    respuesta_container.warning(
+                        "⏳ La API de Anthropic está saturada en este momento. "
+                        "Espera unos segundos y vuelve a enviar tu pregunta."
+                    )
+                else:
+                    respuesta_container.error(f"❌ Error de API ({e.status_code}): {e.message}")
+                logging.error(f"APIStatusError: status={e.status_code} message={e.message}")
+                # Revertir el mensaje del usuario para que el reintento funcione limpio
+                if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                    st.session_state.messages.pop()
+                st.stop()
+            except anthropic.APIConnectionError as e:
+                respuesta_container.error(f"❌ Sin conexión con la API de Anthropic: {e}")
+                logging.error(f"APIConnectionError: {e}")
+                if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                    st.session_state.messages.pop()
+                st.stop()
+            except Exception as e:
+                respuesta_container.error(f"❌ Error inesperado: {type(e).__name__}: {e}")
+                logging.error(f"Unexpected error in streaming: {type(e).__name__}: {e}")
+                if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                    st.session_state.messages.pop()
                 st.stop()
 
             respuesta_container.markdown(respuesta)
