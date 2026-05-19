@@ -444,7 +444,13 @@ def check_auth():
 # ============================================================
 # CLAUDE CLIENT
 # ============================================================
-api_key = os.getenv("ANTHROPIC_API_KEY") or st.secrets.get("ANTHROPIC_API_KEY", "")
+api_key = os.getenv("ANTHROPIC_API_KEY")
+if not api_key:
+    try:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        st.error("❌ Falta el secret ANTHROPIC_API_KEY. Ve a Settings → Secrets de esta app y agrégalo.")
+        st.stop()
 claude_client = anthropic.Anthropic(api_key=api_key)
 
 # ============================================================
