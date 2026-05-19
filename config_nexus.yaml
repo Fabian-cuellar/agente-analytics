@@ -13,7 +13,7 @@ drive:
 
 rag:
   modelo: "claude-haiku-4-5-20251001"
-  top_k: 10                 # chunks recuperados por pregunta (con max_chunks_per_doc=2, cubre hasta 5 docs distintos)
+  top_k: 15                 # chunks recuperados por pregunta (con max_chunks_per_doc=2, cubre hasta 7 docs distintos)
   max_chunk_chars: 1000     # máximo de caracteres por chunk semántico
   min_chunk_chars: 120      # mínimo (descarta micro-fragmentos)
   max_history_pares: 10     # pares pregunta/respuesta en historial Claude
@@ -37,7 +37,7 @@ ui:
     - "¿Qué descuento máximo puedo ofrecer sin aprobación?"
     - "¿Cuánto tiempo demora una implementación Enterprise?"
     - "Tengo un prospecto retail que usa Bsale y Transbank. ¿Qué le ofrezco?"
-    - "¿Cuál fue el vendedor con más cierres en 2024?"
+    - "¿Cuál fue el ejecutivo con más clientes cerrados en 2024?"
     - "¿Cómo manejar la objeción 'ya tenemos un CRM'?"
     - "¿Qué beneficios tienen los empleados de Nexus?"
     - "¿Cuáles son los mercados objetivo del plan de expansión 2025?"

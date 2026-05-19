@@ -317,6 +317,7 @@ def get_o_cargar_indices(documentos):
 # ============================================================
 # HYBRID SEARCH — Reciprocal Rank Fusion (RRF)
 # ============================================================
+
 def buscar_hibrido(query, collection, bm25, all_chunks):
     """
     Two-stage retrieval: todos los documentos compiten, los mejores aportan contexto.
