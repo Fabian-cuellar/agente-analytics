@@ -12,7 +12,7 @@ drive:
   credentials_file: "credentials.json"
 
 rag:
-  modelo: "claude-haiku-4-5"
+  modelo: "claude-haiku-4-5-20251001"
   top_k: 10                 # chunks recuperados por pregunta (con max_chunks_per_doc=2, cubre hasta 5 docs distintos)
   max_chunk_chars: 1000     # máximo de caracteres por chunk semántico
   min_chunk_chars: 120      # mínimo (descarta micro-fragmentos)

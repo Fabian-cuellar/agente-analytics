@@ -609,15 +609,28 @@ if pregunta := st.chat_input(placeholder_input):
             respuesta_container = st.empty()
             respuesta = ""
 
-            with claude_client.messages.stream(
-                model=cfg["rag"]["modelo"],
-                max_tokens=4096,
-                system=cfg["system_prompt"],
-                messages=st.session_state.messages
-            ) as stream:
-                for text in stream.text_stream:
-                    respuesta += text
-                    respuesta_container.markdown(respuesta + "▌")
+            try:
+                with claude_client.messages.stream(
+                    model=cfg["rag"]["modelo"],
+                    max_tokens=4096,
+                    system=cfg["system_prompt"],
+                    messages=st.session_state.messages
+                ) as stream:
+                    for text in stream.text_stream:
+                        respuesta += text
+                        respuesta_container.markdown(respuesta + "▌")
+            except anthropic.APIStatusError as e:
+                st.error(f"❌ Error de API Anthropic ({e.status_code}): {e.message}")
+                logging.error(f"APIStatusError: status={e.status_code} message={e.message}")
+                st.stop()
+            except anthropic.APIConnectionError as e:
+                st.error(f"❌ Sin conexión con la API de Anthropic: {e}")
+                logging.error(f"APIConnectionError: {e}")
+                st.stop()
+            except Exception as e:
+                st.error(f"❌ Error inesperado al llamar a Claude: {type(e).__name__}: {e}")
+                logging.error(f"Unexpected error in streaming: {type(e).__name__}: {e}")
+                st.stop()
 
             respuesta_container.markdown(respuesta)
 
