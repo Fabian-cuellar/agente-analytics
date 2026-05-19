@@ -4,8 +4,9 @@ python-dotenv
 google-api-python-client
 google-auth
 pdfplumber
-chromadb
+chromadb==0.4.24
 sentence-transformers
 rank-bm25
 pyyaml
 numpy
+protobuf==3.20.3
