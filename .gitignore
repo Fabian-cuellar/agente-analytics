@@ -1,7 +1,7 @@
-# Excluir todo
-*
-
-# Excepto estos archivos
-!.gitignore
-!app.py
-!requirements.txt
+.env
+credentials.json
+chroma_db/
+rag_log.txt
+__pycache__/
+*.pyc
+.DS_Store
