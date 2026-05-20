@@ -128,9 +128,11 @@ def limpiar_texto(texto):
     return texto.strip()
 
 def descargar_texto(file_id, mime_type):
+    import io
     service = get_drive_service()
+
     if mime_type == "application/pdf":
-        import pdfplumber, io
+        import pdfplumber
         content = service.files().get_media(fileId=file_id).execute()
         paginas = []
         with pdfplumber.open(io.BytesIO(content)) as pdf:
@@ -154,12 +156,62 @@ def descargar_texto(file_id, mime_type):
                             partes.append(fila_texto)
                 paginas.append("\n".join(partes))
         return "\n\n".join(paginas)
+
+    elif mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        import docx
+        content = service.files().get_media(fileId=file_id).execute()
+        doc = docx.Document(io.BytesIO(content))
+        return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+
+    elif mime_type == "text/plain":
+        content = service.files().get_media(fileId=file_id).execute()
+        return content.decode("utf-8", errors="replace")
+
+    elif mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        import openpyxl
+        content = service.files().get_media(fileId=file_id).execute()
+        wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        partes = []
+        for sheet in wb.worksheets:
+            rows = list(sheet.iter_rows(values_only=True))
+            if not rows:
+                continue
+            headers = [str(c) if c is not None else "" for c in rows[0]]
+            for fila in rows[1:]:
+                celdas = [str(c) if c is not None else "" for c in fila]
+                fila_texto = " | ".join(
+                    f"{h}: {v}" for h, v in zip(headers, celdas) if v and h
+                )
+                if fila_texto:
+                    partes.append(fila_texto)
+        return "\n".join(partes)
+
+    elif mime_type == "text/csv":
+        content = service.files().get_media(fileId=file_id).execute()
+        return content.decode("utf-8", errors="replace")
+
+    elif mime_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        from pptx import Presentation
+        content = service.files().get_media(fileId=file_id).execute()
+        prs = Presentation(io.BytesIO(content))
+        partes = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        texto = para.text.strip()
+                        if texto:
+                            partes.append(texto)
+        return "\n".join(partes)
+
     elif "document" in mime_type:
         content = service.files().export(fileId=file_id, mimeType="text/plain").execute()
         return content.decode("utf-8")
+
     elif "spreadsheet" in mime_type:
         content = service.files().export(fileId=file_id, mimeType="text/csv").execute()
         return content.decode("utf-8")
+
     return ""
 
 def cargar_base_conocimiento():
