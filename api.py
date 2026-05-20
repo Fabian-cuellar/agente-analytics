@@ -15,6 +15,7 @@ Autenticación: header X-API-Key (setear API_SECRET en .env)
 
 import os
 import re
+import gc
 import json
 import logging
 import hashlib
@@ -237,8 +238,11 @@ def construir_indices(documentos):
     all_chunks = []
     for doc in documentos:
         all_chunks.extend(chunkear_semantico(doc))
+    # Modelo liviano: 60MB RAM vs 120MB del L6. Suficiente para docs en español.
+    # Cambiar a "all-MiniLM-L6-v2" si tienes >1GB RAM disponible.
+    EMBED_MODEL = os.getenv("EMBED_MODEL", "paraphrase-MiniLM-L3-v2")
     ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name="all-MiniLM-L6-v2"
+        model_name=EMBED_MODEL
     )
     chroma_client = chromadb.PersistentClient(path=chroma_path)
     try:
@@ -250,7 +254,7 @@ def construir_indices(documentos):
         embedding_function=ef,
         metadata={"hnsw:space": "cosine"}
     )
-    batch_size = 50
+    batch_size = 30  # Batches más pequeños = menor pico de RAM durante construcción
     for i in range(0, len(all_chunks), batch_size):
         batch = all_chunks[i:i + batch_size]
         collection.add(
@@ -258,6 +262,7 @@ def construir_indices(documentos):
             metadatas=[{"nombre": c["nombre"], "url": c["url"]} for c in batch],
             ids=[c["id"] for c in batch]
         )
+        gc.collect()  # Liberar memoria entre batches
     if not all_chunks:
         raise ValueError("No se generaron chunks.")
     tokenized = [c["text"].lower().split() for c in all_chunks]
@@ -280,8 +285,9 @@ def inicializar_indices():
             disk_hash = f.read().strip()
     if disk_hash == current_hash and os.path.exists(chroma_path):
         logger.info("Cargando índice desde disco...")
+        EMBED_MODEL = os.getenv("EMBED_MODEL", "paraphrase-MiniLM-L3-v2")
         ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
+            model_name=EMBED_MODEL
         )
         chroma_client = chromadb.PersistentClient(path=chroma_path)
         collection = chroma_client.get_collection("nexus-kb", embedding_function=ef)
@@ -299,6 +305,7 @@ def inicializar_indices():
     _state["docs_hash"] = current_hash
     _state["documentos"] = documentos
     _state["n_docs"] = len(documentos)
+    gc.collect()  # Liberar memoria de construcción antes de servir requests
     logger.info(f"API lista: {len(all_chunks)} chunks de {len(documentos)} documentos")
 
 # ============================================================
