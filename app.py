@@ -70,11 +70,11 @@ def ejecutar_sql(sql):
         logging.error(f"Error SQL: {e}")
         return f"ERROR_SQL: {str(e)}", None
 
-def llamar_claude_con_retry(client, **kwargs):
+def llamar_claude_stream_con_retry(client, **kwargs):
     max_intentos = 3
     for intento in range(max_intentos):
         try:
-            return client.messages.create(**kwargs)
+            return client.messages.stream(**kwargs)
         except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
             if intento == max_intentos - 1:
                 st.error("Error de conexión con Claude. Intenta de nuevo.")
@@ -209,6 +209,9 @@ if pregunta:
             df_resultado = None
             last_sql = None
 
+            response_placeholder = st.empty()
+            collected_text = ""
+
             max_iter = 8
             iter_count = 0
 
@@ -219,7 +222,9 @@ if pregunta:
                     break
 
                 iter_count += 1
-                response = llamar_claude_con_retry(
+                collected_text = ""
+
+                stream_ctx = llamar_claude_stream_con_retry(
                     client,
                     model="claude-haiku-4-5",
                     max_tokens=2048,
@@ -228,11 +233,18 @@ if pregunta:
                     messages=st.session_state.messages
                 )
 
-                if response is None:
+                if stream_ctx is None:
                     break
 
-                if response.stop_reason == "tool_use":
-                    tool_blocks = [b for b in response.content if b.type == "tool_use"]
+                with stream_ctx as stream:
+                    for text in stream.text_stream:
+                        collected_text += text
+                        response_placeholder.markdown(collected_text + "▌")
+                    final_message = stream.get_final_message()
+
+                if final_message.stop_reason == "tool_use":
+                    response_placeholder.empty()
+                    tool_blocks = [b for b in final_message.content if b.type == "tool_use"]
                     tool_results = []
 
                     for tb in tool_blocks:
@@ -257,12 +269,11 @@ if pregunta:
                             entry["is_error"] = True
                         tool_results.append(entry)
 
-                    st.session_state.messages.append({"role": "assistant", "content": response.content})
+                    st.session_state.messages.append({"role": "assistant", "content": final_message.content})
                     st.session_state.messages.append({"role": "user", "content": tool_results})
 
                 else:
-                    respuesta = response.content[0].text
-                    st.markdown(respuesta)
+                    response_placeholder.markdown(collected_text)
 
                     if last_sql:
                         with st.expander("Ver SQL ejecutado"):
@@ -278,12 +289,12 @@ if pregunta:
                                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                            key="dl_new")
 
-                    msg = {"role": "assistant", "content": respuesta}
+                    msg = {"role": "assistant", "content": collected_text}
                     if df_resultado is not None:
                         msg["dataframe"] = df_resultado
                     if last_sql:
                         msg["sql"] = last_sql
                     st.session_state.chat_history.append(msg)
-                    st.session_state.messages.append({"role": "assistant", "content": respuesta})
-                    logging.info(f"Respuesta: {respuesta[:200]}")
+                    st.session_state.messages.append({"role": "assistant", "content": collected_text})
+                    logging.info(f"Respuesta: {collected_text[:200]}")
                     break
