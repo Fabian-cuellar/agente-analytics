@@ -2,6 +2,7 @@ import streamlit as st
 import anthropic
 import io
 import json
+import time
 from google.cloud import bigquery
 from google.oauth2 import service_account
 import logging
@@ -68,6 +69,20 @@ def ejecutar_sql(sql):
     except Exception as e:
         logging.error(f"Error SQL: {e}")
         return f"ERROR_SQL: {str(e)}", None
+
+def llamar_claude_con_retry(client, **kwargs):
+    max_intentos = 3
+    for intento in range(max_intentos):
+        try:
+            return client.messages.create(**kwargs)
+        except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
+            if intento == max_intentos - 1:
+                st.error("Error de conexión con Claude. Intenta de nuevo.")
+                logging.error(f"API Anthropic falló tras {max_intentos} intentos: {e}")
+                return None
+            espera = 2 ** intento
+            logging.warning(f"Error API (intento {intento + 1}/{max_intentos}), reintentando en {espera}s: {e}")
+            time.sleep(espera)
 
 SYSTEM = f"""Eres un analista de datos experto conectado a BigQuery.
 Dataset: {PROJECT}.{DATASET}
@@ -194,14 +209,27 @@ if pregunta:
             df_resultado = None
             last_sql = None
 
+            max_iter = 8
+            iter_count = 0
+
             while True:
-                response = client.messages.create(
+                if iter_count >= max_iter:
+                    logging.warning(f"Agent loop alcanzó límite de {max_iter} iteraciones sin respuesta final")
+                    st.warning("El agente alcanzó el límite de iteraciones sin resolver la consulta.")
+                    break
+
+                iter_count += 1
+                response = llamar_claude_con_retry(
+                    client,
                     model="claude-haiku-4-5",
                     max_tokens=2048,
                     system=SYSTEM,
                     tools=tools,
                     messages=st.session_state.messages
                 )
+
+                if response is None:
+                    break
 
                 if response.stop_reason == "tool_use":
                     tool_blocks = [b for b in response.content if b.type == "tool_use"]
@@ -213,14 +241,21 @@ if pregunta:
                             texto, df = ejecutar_sql(last_sql)
                             if df is not None:
                                 df_resultado = df
-                        else:
+                        elif tb.name == "obtener_esquema":
                             texto = obtener_esquema(tb.input["tabla"])
+                        else:
+                            texto = f"Error: herramienta desconocida '{tb.name}'"
+                            logging.error(f"Tool desconocida invocada: {tb.name}")
 
-                        tool_results.append({
+                        es_error = texto.startswith("Error") or texto.startswith("ERROR_SQL")
+                        entry = {
                             "type": "tool_result",
                             "tool_use_id": tb.id,
                             "content": texto
-                        })
+                        }
+                        if es_error:
+                            entry["is_error"] = True
+                        tool_results.append(entry)
 
                     st.session_state.messages.append({"role": "assistant", "content": response.content})
                     st.session_state.messages.append({"role": "user", "content": tool_results})
