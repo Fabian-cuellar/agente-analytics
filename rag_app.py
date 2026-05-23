@@ -474,6 +474,7 @@ for key, default in [
     ("messages", []),
     ("chat_history", []),
     ("pregunta_count", 0),
+    ("pending_question", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -566,7 +567,15 @@ for msg in st.session_state.chat_history:
 # CHAT INPUT
 # ============================================================
 placeholder_input = cfg["ui"]["preguntas_ejemplo"][0]
-if pregunta := st.chat_input(placeholder_input):
+if st.session_state.pending_question:
+    pregunta = st.session_state.pending_question
+    st.session_state.pending_question = None
+elif pregunta_input := st.chat_input(placeholder_input):
+    pregunta = pregunta_input
+else:
+    pregunta = None
+
+if pregunta:
 
     if pregunta.strip().lower() in ["salir", "limpiar"]:
         st.session_state.messages = []
@@ -702,5 +711,7 @@ if st.session_state.get("last_chunks"):
 # EJEMPLOS
 # ============================================================
 with st.expander("💡 Preguntas de ejemplo"):
-    for e in cfg["ui"]["preguntas_ejemplo"]:
-        st.markdown(f"• *{e}*")
+    for q in cfg["ui"]["preguntas_ejemplo"]:
+        if st.button(q, use_container_width=True):
+            st.session_state.pending_question = q
+            st.rerun()
