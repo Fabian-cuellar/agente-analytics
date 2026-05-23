@@ -567,10 +567,12 @@ for msg in st.session_state.chat_history:
 # CHAT INPUT
 # ============================================================
 placeholder_input = cfg["ui"]["preguntas_ejemplo"][0]
+pregunta_input = st.chat_input(placeholder_input)
+
 if st.session_state.pending_question:
     pregunta = st.session_state.pending_question
     st.session_state.pending_question = None
-elif pregunta_input := st.chat_input(placeholder_input):
+elif pregunta_input:
     pregunta = pregunta_input
 else:
     pregunta = None
