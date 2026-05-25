@@ -498,11 +498,12 @@ def check_auth():
     with st.form("login_form"):
         pwd = st.text_input("Contraseña", type="password", placeholder="••••••••")
         if st.form_submit_button("Ingresar", use_container_width=True):
-            expected = os.getenv(
-                cfg["auth"]["password_env"],
-                st.secrets.get(cfg["auth"]["password_env"], "")
-            )
-            if pwd == expected:
+            key = cfg["auth"]["password_env"]
+            try:
+                expected = st.secrets[key]
+            except Exception:
+                expected = os.getenv(key, "")
+            if pwd.strip() == expected.strip():
                 st.session_state.authenticated = True
                 st.rerun()
             else:
