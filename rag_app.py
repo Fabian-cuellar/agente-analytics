@@ -524,6 +524,18 @@ claude_client = anthropic.Anthropic(api_key=api_key)
 color = cfg["ui"].get("color_primario", "#4F46E5")
 logo_url = cfg["ui"].get("logo_url", "")
 
+# ============================================================
+# APP
+# ============================================================
+st.set_page_config(
+    page_title=cfg["ui"]["titulo"],
+    page_icon=cfg["cliente"]["icono"],
+    layout="wide"
+)
+
+if logo_url:
+    st.logo(logo_url)
+
 st.markdown(f"""
 <style>
     .stButton>button {{
@@ -541,18 +553,6 @@ st.markdown(f"""
     }}
 </style>
 """, unsafe_allow_html=True)
-
-# ============================================================
-# APP
-# ============================================================
-st.set_page_config(
-    page_title=cfg["ui"]["titulo"],
-    page_icon=cfg["cliente"]["icono"],
-    layout="wide"
-)
-
-if logo_url:
-    st.logo(logo_url)
 
 if not check_auth():
     st.stop()
