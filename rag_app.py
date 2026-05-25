@@ -160,6 +160,24 @@ def descargar_texto(file_id, mime_type):
                             partes.append(texto)
         return "\n".join(partes)
 
+    elif mime_type == "application/vnd.google-apps.presentation":
+        content = service.files().export(
+            fileId=file_id,
+            mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        ).execute()
+        from pptx import Presentation
+        import io
+        prs = Presentation(io.BytesIO(content))
+        partes = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        texto = para.text.strip()
+                        if texto:
+                            partes.append(texto)
+        return "\n".join(partes)
+
     elif "document" in mime_type:
         content = service.files().export(fileId=file_id, mimeType="text/plain").execute()
         return content.decode("utf-8")
