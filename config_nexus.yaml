@@ -21,7 +21,7 @@ rag:
   max_chunks_per_doc: 2       # máximo de chunks del mismo doc en cada respuesta (fuerza diversidad)
 
 auth:
-  enabled: false             # true para activar login con contraseña
+  enabled: true              # true para activar login con contraseña
   password_env: "APP_PASSWORD"  # variable de entorno o st.secrets con la contraseña
 
 ui:
