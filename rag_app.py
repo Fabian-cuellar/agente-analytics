@@ -501,13 +501,15 @@ def check_auth():
             key = cfg["auth"]["password_env"]
             try:
                 expected = st.secrets[key]
-            except Exception:
+                src = "secrets"
+            except Exception as e:
                 expected = os.getenv(key, "")
+                src = f"env({e})"
             if pwd.strip() == expected.strip():
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("Contraseña incorrecta")
+                st.error(f"Contraseña incorrecta · key={key} · fuente={src} · expected_len={len(expected.strip())} · pwd_len={len(pwd.strip())}")
     return False
 
 # ============================================================
