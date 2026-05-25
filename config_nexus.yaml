@@ -32,6 +32,8 @@ ui:
     competidores y métricas**, basándome en la documentación oficial de la empresa.
     Úsame en tiempo real durante reuniones con clientes o para prepararte antes de una venta.
   temas: "Precios · Planes · Scripts de venta · Objeciones · Integraciones · Onboarding · SLA · RRHH · Competidores · KPIs"
+  logo_url: ""                      # URL pública del logo (dejar vacío = sin logo)
+  color_primario: "#4F46E5"         # Color principal de la marca del cliente
   preguntas_ejemplo:
     - "¿Cuánto cuesta el plan Business mensualmente?"
     - "¿Qué descuento máximo puedo ofrecer sin aprobación?"

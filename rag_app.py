@@ -521,6 +521,27 @@ if not api_key:
         st.stop()
 claude_client = anthropic.Anthropic(api_key=api_key)
 
+color = cfg["ui"].get("color_primario", "#4F46E5")
+logo_url = cfg["ui"].get("logo_url", "")
+
+st.markdown(f"""
+<style>
+    .stButton>button {{
+        background-color: {color};
+        color: white;
+        border: none;
+        border-radius: 6px;
+    }}
+    .stButton>button:hover {{ opacity: 0.85; }}
+    section[data-testid="stSidebar"] {{
+        border-right: 3px solid {color};
+    }}
+    .stChatMessage [data-testid="stMarkdownContainer"] a {{
+        color: {color};
+    }}
+</style>
+""", unsafe_allow_html=True)
+
 # ============================================================
 # APP
 # ============================================================
@@ -529,6 +550,9 @@ st.set_page_config(
     page_icon=cfg["cliente"]["icono"],
     layout="wide"
 )
+
+if logo_url:
+    st.logo(logo_url)
 
 if not check_auth():
     st.stop()
