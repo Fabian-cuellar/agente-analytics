@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+prospect_result.json
+credentials.json
+*.log

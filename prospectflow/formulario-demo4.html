@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prospección B2B · Agente IA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 580px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text { font-size: 1rem; font-weight: 600; color: #e5e7eb; letter-spacing: -0.02em; }
+    .logo-sub  { font-size: 0.75rem; color: #6b7280; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; color: #f9fafb; margin-bottom: 0.4rem; letter-spacing: -0.03em; }
+    .subtitle { font-size: 0.875rem; color: #6b7280; margin-bottom: 2rem; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      background: #1e1b4b;
+      color: #a5b4fc;
+      border: 1px solid #3730a3;
+      border-radius: 20px;
+      padding: 3px 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .field { margin-bottom: 1.2rem; }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #9ca3af;
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: #f9fafb;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus, select:focus { border-color: #6366f1; }
+    input::placeholder, textarea::placeholder { color: #374151; }
+
+    textarea { resize: vertical; min-height: 90px; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    button {
+      width: 100%;
+      padding: 0.875rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.99); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* PASOS DEL PIPELINE */
+    .pipeline-steps {
+      display: none;
+      margin-top: 1.5rem;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .pipeline-steps.visible { display: block; }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.85rem;
+      color: #6b7280;
+      transition: color 0.3s;
+    }
+
+    .step.active { color: #a5b4fc; }
+    .step.done   { color: #4ade80; }
+
+    .step-icon { font-size: 1rem; width: 24px; text-align: center; }
+
+    .step-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(165,180,252,0.3);
+      border-top-color: #a5b4fc;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .step.active .step-spinner { display: block; }
+    .step.active .step-icon    { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* RESULTADO */
+    .result { display: none; margin-top: 1.5rem; }
+    .result.visible { display: block; }
+
+    .score-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+      padding: 1rem 1.25rem;
+      background: #111;
+      border-radius: 10px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .score-number { font-size: 2rem; font-weight: 800; }
+    .score-label  { font-size: 0.8rem; color: #9ca3af; }
+    .score-rec {
+      margin-left: auto;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .rec-proceed  { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .rec-nurture  { background: #1c1408; color: #fbbf24; border: 1px solid #92400e; }
+    .rec-discard  { background: #1c0a0a; color: #f87171; border: 1px solid #991b1b; }
+
+    .criteria-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+
+    .criterion {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .criterion-name { font-size: 0.7rem; color: #6b7280; margin-bottom: 4px; text-transform: uppercase; }
+    .criterion-score { font-size: 1.1rem; font-weight: 700; }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .section { margin-bottom: 1.25rem; }
+
+    .insights-list { list-style: none; }
+    .insights-list li {
+      font-size: 0.85rem;
+      color: #d1d5db;
+      padding: 6px 0;
+      border-bottom: 1px solid #1f1f1f;
+      padding-left: 16px;
+      position: relative;
+    }
+    .insights-list li::before { content: '→'; position: absolute; left: 0; color: #6366f1; }
+    .insights-list li:last-child { border: none; }
+
+    .thinking-box {
+      background: #0d1117;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      color: #7dd3fc;
+      font-family: 'Courier New', monospace;
+      line-height: 1.5;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .email-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .email-subject {
+      font-size: 0.85rem;
+      color: #a5b4fc;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .email-body {
+      font-size: 0.875rem;
+      color: #cbd5e1;
+      white-space: pre-line;
+      line-height: 1.65;
+    }
+
+    .copy-btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      width: auto;
+      margin-top: 0;
+      display: inline-flex;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { background: #334155; color: #e2e8f0; }
+
+    .notification-box {
+      background: #0a1a0a;
+      border: 1px solid #166534;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: #4ade80;
+    }
+
+    .error-box {
+      margin-top: 1.2rem;
+      padding: 1rem;
+      background: #1c0a0a;
+      border: 1px solid #991b1b;
+      border-radius: 8px;
+      color: #f87171;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo">
+    <div class="logo-icon">🎯</div>
+    <div>
+      <div class="logo-text">ProspectAI · Demo 4</div>
+      <div class="logo-sub">Sistema multiagente · Claude SDK</div>
+    </div>
+  </div>
+
+  <div class="badge"><span class="dot"></span> 4 agentes activos</div>
+
+  <h1>Prospección B2B inteligente</h1>
+  <p class="subtitle">Ingresa una empresa y contacto. El sistema investiga, evalúa el fit y genera un email hiperpersonalizado.</p>
+
+  <form id="prospectForm">
+    <div class="row">
+      <div class="field">
+        <label>Nombre del contacto</label>
+        <input type="text" id="contact_name" placeholder="Lucas Clavero" required>
+      </div>
+      <div class="field">
+        <label>Cargo</label>
+        <input type="text" id="contact_role" placeholder="CEO" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Empresa / Dominio</label>
+      <input type="text" id="company_name" placeholder="growclub.io" required>
+    </div>
+
+    <div class="field">
+      <label>Contexto adicional (opcional)</label>
+      <textarea id="extra_context" placeholder="¿Hay alguna señal de compra? ¿Conoces al contacto? ¿Viste un post relevante?"></textarea>
+    </div>
+
+    <button type="submit" id="btn">
+      <span id="btnText">🚀 Analizar prospecto</span>
+    </button>
+  </form>
+
+  <!-- PASOS DEL PIPELINE -->
+  <div class="pipeline-steps" id="pipelineSteps">
+    <div class="step" id="step1">
+      <div class="step-spinner"></div>
+      <div class="step-icon">🔍</div>
+      <span>Agente 1 — Investigando empresa y contacto...</span>
+    </div>
+    <div class="step" id="step2">
+      <div class="step-spinner"></div>
+      <div class="step-icon">🧠</div>
+      <span>Agente 2 — Evaluando fit ICP con Extended Thinking...</span>
+    </div>
+    <div class="step" id="step3">
+      <div class="step-spinner"></div>
+      <div class="step-icon">✉️</div>
+      <span>Agente 3 — Redactando email hiperpersonalizado...</span>
+    </div>
+    <div class="step" id="step4">
+      <div class="step-spinner"></div>
+      <div class="step-icon">📊</div>
+      <span>Agente 4 — Registrando en Google Sheets...</span>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- RESULTADO -->
+  <div class="result" id="result"></div>
+
+</div>
+
+<script>
+  // ── CONFIGURACIÓN ─────────────────────────────────────────────────────────
+  // Cambia esta URL cuando despliegues FastAPI en producción
+  const API_URL = 'http://localhost:8004/prospect';
+
+  // Simulación de pasos progresivos (el backend no hace streaming, así que simulamos)
+  const STEP_TIMINGS = [2000, 30000, 60000, 120000]; // ms estimados por paso
+
+  let stepTimers = [];
+
+  function activateStep(stepId) {
+    document.getElementById(stepId).classList.add('active');
+  }
+
+  function completeStep(stepId) {
+    const el = document.getElementById(stepId);
+    el.classList.remove('active');
+    el.classList.add('done');
+    // Reemplazar spinner por check
+    el.querySelector('.step-spinner').style.display = 'none';
+    el.querySelector('.step-icon').style.display = 'block';
+    el.querySelector('.step-icon').textContent = '✅';
+  }
+
+  function clearStepTimers() {
+    stepTimers.forEach(t => clearTimeout(t));
+    stepTimers = [];
+  }
+
+  function simulatePipelineProgress() {
+    activateStep('step1');
+    stepTimers.push(setTimeout(() => { completeStep('step1'); activateStep('step2'); }, STEP_TIMINGS[0]));
+    stepTimers.push(setTimeout(() => { completeStep('step2'); activateStep('step3'); }, STEP_TIMINGS[1]));
+    stepTimers.push(setTimeout(() => { completeStep('step3'); activateStep('step4'); }, STEP_TIMINGS[2]));
+    stepTimers.push(setTimeout(() => { completeStep('step4'); }, STEP_TIMINGS[3]));
+  }
+
+  function getScoreColor(score) {
+    if (score >= 8) return '#4ade80';
+    if (score >= 6) return '#fbbf24';
+    return '#f87171';
+  }
+
+  function getRecClass(rec) {
+    if (rec === 'proceed') return 'rec-proceed';
+    if (rec === 'nurture') return 'rec-nurture';
+    return 'rec-discard';
+  }
+
+  function getRecLabel(rec) {
+    if (rec === 'proceed') return '🔥 Contactar ahora';
+    if (rec === 'nurture') return '👀 Nurture';
+    return '❄️ Descartar';
+  }
+
+  function renderCriteriaScore(score) {
+    const color = score >= 8 ? '#4ade80' : score >= 6 ? '#fbbf24' : '#f87171';
+    return `<span style="color:${color}">${score}/10</span>`;
+  }
+
+  function renderResult(data) {
+    const { research, score, email, output } = data;
+    const scoreColor = getScoreColor(score.score);
+
+    // Criteria names en español
+    const criteriaNames = {
+      modelo_negocio_b2b: 'Modelo B2B',
+      equipo_ventas_activo: 'Equipo ventas',
+      dolor_en_prospeccion: 'Dolor detectado',
+      presupuesto_estimado: 'Presupuesto',
+      accesibilidad_decisor: 'Acceso decisor'
+    };
+
+    const criteriaHTML = Object.entries(score.criteria_scores || {}).map(([k, v]) => `
+      <div class="criterion">
+        <div class="criterion-name">${criteriaNames[k] || k}</div>
+        <div class="criterion-score">${renderCriteriaScore(v)}</div>
+      </div>
+    `).join('');
+
+    const insightsHTML = (score.key_insights || []).map(i => `<li>${i}</li>`).join('');
+
+    const resultEl = document.getElementById('result');
+    resultEl.innerHTML = `
+
+      <!-- SCORE HEADER -->
+      <div class="score-header">
+        <div>
+          <div class="score-number" style="color:${scoreColor}">${score.score}/10</div>
+          <div class="score-label">${research.company_name} · ${research.industry}</div>
+        </div>
+        <div class="score-rec ${getRecClass(score.recommendation)}">
+          ${getRecLabel(score.recommendation)}
+        </div>
+      </div>
+
+      <!-- CRITERIOS -->
+      <div class="section">
+        <div class="section-title">Desglose del score</div>
+        <div class="criteria-grid">${criteriaHTML}</div>
+      </div>
+
+      <!-- RAZONAMIENTO -->
+      <div class="section">
+        <div class="section-title">Razonamiento del scorer</div>
+        <p style="font-size:0.85rem;color:#d1d5db;line-height:1.6;background:#111;padding:12px;border-radius:8px;border:1px solid #2a2a2a">
+          ${score.reasoning_summary}
+        </p>
+      </div>
+
+      <!-- INSIGHTS -->
+      <div class="section">
+        <div class="section-title">Insights clave para el email</div>
+        <ul class="insights-list">${insightsHTML}</ul>
+      </div>
+
+      <!-- EXTENDED THINKING PREVIEW -->
+      ${score.thinking_preview ? `
+      <div class="section">
+        <div class="section-title">💭 Extended Thinking — Preview del razonamiento interno</div>
+        <div class="thinking-box">${score.thinking_preview.replace(/\n/g,'<br>')}</div>
+      </div>` : ''}
+
+      <!-- EMAIL -->
+      <div class="section">
+        <div class="section-title">Email generado (${email.word_count} palabras · ${email.tone})</div>
+        <div class="email-box">
+          <div class="email-subject">Asunto: ${email.subject}</div>
+          <div class="email-body" id="emailBody">${email.body}</div>
+        </div>
+        <button class="copy-btn" onclick="copyEmail()">📋 Copiar email</button>
+      </div>
+
+      <!-- ALTERNATIVAS DE ASUNTO -->
+      ${email.subject_alternatives && email.subject_alternatives.length ? `
+      <div class="section">
+        <div class="section-title">Asuntos alternativos</div>
+        ${email.subject_alternatives.map(s => `
+          <div style="font-size:0.8rem;color:#9ca3af;padding:5px 0;border-bottom:1px solid #1f1f1f">→ ${s}</div>
+        `).join('')}
+      </div>` : ''}
+
+      <!-- NOTIFICACIÓN -->
+      <div class="section">
+        <div class="section-title">Notificación generada</div>
+        <div class="notification-box">${output.notification_summary}</div>
+      </div>
+
+      <!-- META -->
+      <div style="margin-top:1rem;padding:10px;background:#111;border-radius:8px;border:1px solid #1f1f1f">
+        <div style="font-size:0.75rem;color:#6b7280;display:flex;gap:20px;flex-wrap:wrap">
+          <span>⏱ ${data.pipeline_duration_seconds}s</span>
+          <span>🔢 ${data.total_tokens_used.toLocaleString()} tokens</span>
+          <span>💾 Sheets: ${output.sheet_row_written ? '✅' : '❌'}</span>
+          <span>📊 Confianza research: ${research.research_confidence}</span>
+        </div>
+      </div>
+    `;
+
+    resultEl.classList.add('visible');
+  }
+
+  function copyEmail() {
+    const body = document.getElementById('emailBody').innerText;
+    navigator.clipboard.writeText(body).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ Copiado';
+      setTimeout(() => btn.textContent = '📋 Copiar email', 2000);
+    });
+  }
+
+  document.getElementById('prospectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = document.getElementById('btn');
+    const stepsEl = document.getElementById('pipelineSteps');
+    const resultEl = document.getElementById('result');
+    const errorBox = document.getElementById('errorBox');
+
+    // Reset
+    resultEl.classList.remove('visible');
+    errorBox.style.display = 'none';
+    document.querySelectorAll('.step').forEach(s => {
+      s.classList.remove('active','done');
+      s.querySelector('.step-icon').style.display = 'block';
+      s.querySelector('.step-icon').textContent = s.id === 'step1' ? '🔍' : s.id === 'step2' ? '🧠' : s.id === 'step3' ? '✉️' : '📊';
+    });
+    clearStepTimers();
+
+    const payload = {
+      company_name: document.getElementById('company_name').value,
+      contact_name: document.getElementById('contact_name').value,
+      contact_role: document.getElementById('contact_role').value,
+      extra_context: document.getElementById('extra_context').value || null
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Procesando...';
+    stepsEl.classList.add('visible');
+    simulatePipelineProgress();
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      clearStepTimers();
+      // Marcar todos como done
+      ['step1','step2','step3','step4'].forEach(completeStep);
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Error ${res.status}: ${err}`);
+      }
+
+      const data = await res.json();
+      renderResult(data);
+
+    } catch (err) {
+      clearStepTimers();
+      errorBox.style.display = 'block';
+      errorBox.innerHTML = `
+        ❌ <strong>No se pudo conectar con el agente.</strong><br><br>
+        Asegúrate de que FastAPI esté corriendo:<br>
+        <code style="font-size:0.8rem;color:#fca5a5">uvicorn main:app --reload --port 8004</code><br><br>
+        <span style="font-size:0.8rem;color:#9ca3af">${err.message}</span>
+      `;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Analizar prospecto';
+    }
+  });
+</script>
+</body>
+</html>
