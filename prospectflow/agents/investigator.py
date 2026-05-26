@@ -9,7 +9,8 @@ import json
 import anthropic
 from typing import Any
 
-from config import ANTHROPIC_API_KEY, INVESTIGATOR_MODEL, ICP_DEFINITION, _HTTP_CLIENT
+import requests as http_requests
+from config import ANTHROPIC_API_KEY, INVESTIGATOR_MODEL, ICP_DEFINITION, _HTTP_CLIENT, SERPER_API_KEY
 from models import ProspectRequest, CompanyResearch
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, http_client=_HTTP_CLIENT)
@@ -111,107 +112,58 @@ def execute_tool(tool_name: str, tool_input: dict) -> str:
 
 
 def _mock_search_web(query: str, search_type: str) -> str:
-    """
-    MOCK — En producción: Serper API o Tavily
-    import requests
-    r = requests.post("https://google.serper.dev/search",
-        headers={"X-API-KEY": SERPER_API_KEY},
-        json={"q": query, "num": 10})
-    return json.dumps(r.json()["organic"][:5])
-    """
-    mock_data = {
-        "growclub": {
-            "general": """
-Resultados para "growclub.io B2B":
-1. GrowClub.io — Comunidad y formación en prospección B2B para equipos de ventas en LATAM
-   URL: https://growclub.io | Descripción: Lucas Clavero fundó GrowClub en 2023 para democratizar
-   el conocimiento de ventas B2B en Latinoamérica. Ofrecen cursos online, comunidad privada
-   de SDRs/BDRs, y templates de outbound. MRR estimado: USD 15-30k.
+    """Búsqueda web real con Serper. Fallback a mensaje descriptivo si no hay key."""
+    if not SERPER_API_KEY:
+        return f"[Sin SERPER_API_KEY] No se pudo buscar: '{query}'. Agrega SERPER_API_KEY en .env"
 
-2. LinkedIn GrowClub: 2.400 seguidores. Postean 3-4 veces por semana sobre cold email,
-   LinkedIn outbound, y métricas de conversión.
+    try:
+        endpoint = "https://google.serper.dev/news" if search_type == "news" else "https://google.serper.dev/search"
+        r = http_requests.post(
+            endpoint,
+            headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
+            json={"q": query, "num": 5, "gl": "cl", "hl": "es"},
+            timeout=10
+        )
+        data = r.json()
 
-3. Notion público de GrowClub: Templates de secuencias de email, scripts de llamadas frías,
-   frameworks de ICP para equipos de 1-10 vendedores.
-""",
-            "news": """
-Noticias recientes GrowClub (últimos 3 meses):
-- Lanzaron "GrowClub Pro" (Marzo 2025): plan enterprise para equipos de +5 vendedores — USD 297/mes
-- Lucas Clavero dio keynote en SaaS Summit Santiago (Abril 2025) sobre "outbound en era de IA"
-- Colaboración anunciada con HubSpot LATAM para crear contenido conjunto
-- 500 miembros activos en comunidad Discord
-""",
-            "tech": """
-Stack tecnológico inferido GrowClub:
-- CRM: HubSpot (mencionado en varios posts, partner oficial)
-- Email outreach: Lemlist o Apollo.io (mencionados en su contenido)
-- Comunidad: Discord + Circle.so
-- Pagos: Stripe (USD) + Mercado Pago (CLP/ARS)
-- Hosting/web: Webflow
-- Video: Loom para tutoriales
-"""
-        }
-    }
+        results = data.get("organic", data.get("news", []))[:5]
+        if not results:
+            return f"Sin resultados para: {query}"
 
-    # Lookup flexible
-    for keyword in ["growclub", "grow"]:
-        if keyword in query.lower():
-            return mock_data["growclub"].get(search_type, mock_data["growclub"]["general"])
+        output = f"Resultados de búsqueda para '{query}':\n\n"
+        for i, item in enumerate(results, 1):
+            output += f"{i}. {item.get('title', 'Sin título')}\n"
+            output += f"   URL: {item.get('link', '')}\n"
+            output += f"   {item.get('snippet', item.get('description', ''))}\n\n"
+        return output
 
-    return f"[MOCK] Resultados de búsqueda para '{query}' ({search_type}): Sin datos mock disponibles para esta empresa. En producción esto llamaría a Serper/Tavily."
+    except Exception as e:
+        return f"Error en búsqueda Serper: {e}"
 
 
 def _mock_scrape_page(url: str, extract_focus: str) -> str:
-    """MOCK — En producción: Firecrawl o Playwright"""
-    if "growclub.io" in url:
-        return """
-Página scraped: growclub.io/about
-
-GrowClub es la comunidad #1 de ventas B2B en LATAM.
-Fundador: Lucas Clavero — ex Head of Sales en Rankmi (HR-Tech chilena, Serie B).
-Misión: ayudar a equipos de ventas a prospectar mejor usando metodología + tecnología.
-
-Productos:
-- GrowClub Starter: USD 97/mes — acceso comunidad + templates
-- GrowClub Pro: USD 297/mes — coaching grupal semanal + acceso herramientas premium
-- GrowClub Teams: precio custom — para equipos de +10 vendedores
-
-Pain points que resuelven (su propio copy):
-"El 80% del tiempo de un SDR se va en buscar y copiar información. Los emails genéricos
-tienen 2% de open rate. La prospección manual no escala."
-
-Clientes actuales: startups y scaleups B2B en Chile, Argentina, México, Colombia.
-"""
-    return f"[MOCK] Contenido de {url}: página mock vacía. Conectar Firecrawl en producción."
+    """Scraping básico via Serper — busca info de la URL en lugar de scraping real.
+    Para scraping real: Firecrawl (firecrawl.dev) — fácil de conectar después."""
+    if not SERPER_API_KEY:
+        return f"[Sin SERPER_API_KEY] No se pudo scrapear {url}"
+    try:
+        # Usamos Serper para buscar info sobre esa URL específica
+        query = f"site:{url.replace('https://','').replace('http://','').split('/')[0]} {extract_focus}"
+        return _mock_search_web(query, "general")
+    except Exception as e:
+        return f"Error scraping {url}: {e}"
 
 
 def _mock_search_linkedin(person_name: str, company_name: str, extract: list) -> str:
-    """MOCK — En producción: Proxycurl API o PhantomBuster"""
-    if "lucas" in person_name.lower() or "clavero" in person_name.lower():
-        return """
-LinkedIn Profile: Lucas Clavero
-Cargo actual: CEO & Founder en GrowClub.io (2 años)
-Cargo anterior: Head of Growth en Rankmi (3 años) — lideró crecimiento,
-  adquisición de clientes y expansión de revenue de USD 2M a USD 8M ARR.
-Educación: Ingeniería Comercial, Universidad de Chile.
-Conexiones: 2.847 | Seguidores: 4.200
-
-Posts recientes (últimos 30 días):
-1. "Implementé IA en mi proceso de outbound. Resultados después de 30 días: [hilo]"
-   → 234 likes, 67 comentarios. Habla de usar ChatGPT para personalizar emails pero
-   menciona que "los resultados son genéricos, falta contexto real de la empresa".
-
-2. "Por qué el 90% de los SDRs usan IA mal para prospectar [thread]"
-   → Critica el uso superficial de IA, dice que falta un sistema que realmente
-   investigue y personalice end-to-end.
-
-3. "Estamos buscando una solución de IA para automatizar la investigación de leads.
-   ¿Algún tool recomendado?" — Publicado hace 18 días. 43 respuestas, ninguna solución
-   clara. El propio Lucas comentó "todo lo que vi es demasiado genérico".
-
-Actividad de comentarios: activo comentando en posts de HubSpot LATAM y Clay.
-"""
-    return f"[MOCK] LinkedIn de {person_name} en {company_name}: datos mock no disponibles."
+    """Búsqueda LinkedIn via Serper (resultados públicos).
+    Para datos completos: Proxycurl API — conectar en fase 2."""
+    if not SERPER_API_KEY:
+        return f"[Sin SERPER_API_KEY] No se pudo buscar LinkedIn de {person_name}"
+    try:
+        query = f"{person_name} {company_name} LinkedIn"
+        return _mock_search_web(query, "general")
+    except Exception as e:
+        return f"Error buscando LinkedIn de {person_name}: {e}"
 
 
 # ── SYSTEM PROMPT CON PROMPT CACHING ─────────────────────────────────────────
