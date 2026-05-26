@@ -88,7 +88,7 @@ Devuelve SOLO un JSON válido con este esquema (sin markdown):
         model=SCORER_MODEL,
         max_tokens=16_000,  # IMPORTANTE: con thinking, max_tokens debe incluir el thinking budget
         thinking={
-            "type": "adaptive",  # antes "enabled" — adaptive ajusta el budget según la complejidad
+            "type": "enabled",
             "budget_tokens": THINKING_BUDGET_TOKENS
         },
         system=system_prompt,
